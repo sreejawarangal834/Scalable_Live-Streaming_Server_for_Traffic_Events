@@ -1,0 +1,16 @@
+general: {
+    admin_key = ""
+    lock_rtp_forward = true
+}
+
+room-1234: {
+    description = "Live Streaming Room"
+    secret = ""
+    publishers = 10
+    bitrate = 2048000
+    fir_freq = 10
+    audiocodec = "opus"
+    videocodec = "vp8"
+    record = false
+    rec_dir = "/tmp/recordings"
+}

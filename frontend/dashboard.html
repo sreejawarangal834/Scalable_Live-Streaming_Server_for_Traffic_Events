@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Stream Analytics Dashboard</title>
+    <link rel="stylesheet" href="dashboard-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>📊 Live Stream Analytics Dashboard</h1>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span>Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Main Stats Grid -->
+        <div class="stats-grid">
+            <!-- Stream Status Card -->
+            <div class="stat-card status-card">
+                <div class="stat-icon">🔴</div>
+                <div class="stat-content">
+                    <div class="stat-label">Stream Status</div>
+                    <div class="stat-value" id="streamStatus">OFFLINE</div>
+                    <div class="stat-sublabel" id="broadcasterCount">0 broadcasters</div>
+                </div>
+            </div>
+
+            <!-- Active Viewers Card -->
+            <div class="stat-card viewers-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <div class="stat-label">Active Viewers</div>
+                    <div class="stat-value" id="viewerCount">0</div>
+                    <div class="stat-sublabel">watching now</div>
+                </div>
+            </div>
+
+            <!-- Latency Card -->
+            <div class="stat-card latency-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-content">
+                    <div class="stat-label">Avg Latency</div>
+                    <div class="stat-value" id="latency">-- ms</div>
+                    <div class="stat-sublabel">round-trip time</div>
+                </div>
+            </div>
+
+            <!-- CPU Usage Card -->
+            <div class="stat-card cpu-card">
+                <div class="stat-icon">💻</div>
+                <div class="stat-content">
+                    <div class="stat-label">CPU Usage</div>
+                    <div class="stat-value" id="cpuUsage">0%</div>
+                    <div class="stat-sublabel">server load</div>
+                </div>
+            </div>
+
+            <!-- Memory Usage Card -->
+            <div class="stat-card memory-card">
+                <div class="stat-icon">🧠</div>
+                <div class="stat-content">
+                    <div class="stat-label">Memory Usage</div>
+                    <div class="stat-value" id="memoryUsage">0%</div>
+                    <div class="stat-sublabel" id="memoryDetails">0 MB used</div>
+                </div>
+            </div>
+
+            <!-- Bandwidth Card -->
+            <div class="stat-card bandwidth-card">
+                <div class="stat-icon">📡</div>
+                <div class="stat-content">
+                    <div class="stat-label">Bandwidth</div>
+                    <div class="stat-value" id="bandwidth">0 Mbps</div>
+                    <div class="stat-sublabel">network usage</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <!-- Viewer Activity Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>📈 Viewer Activity (Real-Time)</h3>
+                    <span class="chart-info">Last 60 seconds</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="viewerChart"></canvas>
+                </div>
+            </div>
+
+            <!-- System Resources Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>⚙️ System Resources</h3>
+                    <span class="chart-info">CPU & Memory</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="resourceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Panel -->
+        <div class="performance-panel">
+            <h3>📊 Performance Metrics</h3>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <div class="metric-label">Total Connections</div>
+                    <div class="metric-value" id="totalConnections">0</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Success Rate</div>
+                    <div class="metric-value" id="successRate">100%</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Failed Connections</div>
+                    <div class="metric-value" id="failedConnections">0</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Avg Connection Time</div>
+                    <div class="metric-value" id="avgConnectionTime">0 ms</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Total Disconnections</div>
+                    <div class="metric-value" id="totalDisconnections">0</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Server Uptime</div>
+                    <div class="metric-value" id="serverUptime">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Geographic Distribution -->
+        <div class="geographic-panel">
+            <h3>🌍 Viewer Distribution by Region</h3>
+            <div class="region-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Region</th>
+                            <th>Viewers</th>
+                            <th>Percentage</th>
+                            <th>Distribution</th>
+                        </tr>
+                    </thead>
+                    <tbody id="regionTable">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <div class="footer-info">
+                <span>Last Updated: <span id="lastUpdate">--</span></span>
+                <span>•</span>
+                <span>Auto-refresh: <span class="status-active">ON</span></span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

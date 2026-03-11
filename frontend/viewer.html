@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer - Live Streaming</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📺 Viewer Interface</h1>
+        <div class="status" id="status">Ready to watch</div>
+        
+        <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline controls></video>
+        </div>
+        
+        <div class="controls">
+            <input type="number" id="roomInput" value="1234" placeholder="Room ID">
+            <button id="joinBtn" class="btn btn-primary">Join Stream</button>
+            <button id="leaveBtn" class="btn btn-danger" disabled>Leave Stream</button>
+        </div>
+        
+        <div class="info">
+            <p id="viewerCount">Viewers: 0</p>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/8.2.2/adapter.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+        const remoteVideo = document.getElementById('remoteVideo');
+        const joinBtn = document.getElementById('joinBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const status = document.getElementById('status');
+        const roomInput = document.getElementById('roomInput');
+        
+        let viewer = null;
+        
+        joinBtn.onclick = async () => {
+            try {
+                const roomId = parseInt(roomInput.value);
+                status.textContent = 'Connecting to stream...';
+                
+                viewer = new Viewer(roomId);
+                const stream = await viewer.start();
+                
+                remoteVideo.srcObject = stream;
+                status.textContent = '▶️ Watching live stream';
+                joinBtn.disabled = true;
+                leaveBtn.disabled = false;
+                roomInput.disabled = true;
+            } catch (error) {
+                status.textContent = 'Error: ' + error.message;
+                console.error('Viewer error:', error);
+            }
+        };
+        
+        leaveBtn.onclick = () => {
+            if (viewer) {
+                viewer.stop();
+                remoteVideo.srcObject = null;
+                status.textContent = 'Left stream';
+                joinBtn.disabled = false;
+                leaveBtn.disabled = true;
+                roomInput.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

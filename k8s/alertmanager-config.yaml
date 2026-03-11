@@ -1,0 +1,234 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: streaming-system
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      slack_api_url: 'YOUR_SLACK_WEBHOOK_URL_HERE'
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'alerts@streaming-system.com'
+      smtp_auth_username: 'YOUR_EMAIL_HERE'
+      smtp_auth_password: 'YOUR_APP_PASSWORD_HERE'
+
+    # Templates for notifications
+    templates:
+    - '/etc/alertmanager/templates/*.tmpl'
+
+    # Route tree
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'default'
+      routes:
+      # Critical alerts go to both Slack and email
+      - match:
+          severity: critical
+        receiver: 'critical-alerts'
+        continue: true
+      # Warning alerts go to Slack only
+      - match:
+          severity: warning
+        receiver: 'warning-alerts'
+      # Platform team alerts
+      - match:
+          team: platform
+        receiver: 'platform-team'
+
+    # Receivers
+    receivers:
+    - name: 'default'
+      slack_configs:
+      - channel: '#streaming-alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+
+    - name: 'critical-alerts'
+      slack_configs:
+      - channel: '#streaming-critical'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .CommonLabels.severity }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Details:*
+          {{ range .Alerts }}
+            • Pod: {{ .Labels.pod }}
+            • Namespace: {{ .Labels.namespace }}
+            • Value: {{ .Annotations.value }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+      email_configs:
+      - to: 'platform-team@company.com'
+        headers:
+          Subject: '🚨 CRITICAL ALERT: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Critical Alert: {{ .GroupLabels.alertname }}</h2>
+          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <h3>Affected Resources:</h3>
+          <ul>
+          {{ range .Alerts }}
+            <li>Pod: {{ .Labels.pod }} ({{ .Labels.namespace }})</li>
+          {{ end }}
+          </ul>
+        send_resolved: true
+
+    - name: 'warning-alerts'
+      slack_configs:
+      - channel: '#streaming-warnings'
+        title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+        color: 'warning'
+        send_resolved: true
+
+    - name: 'platform-team'
+      slack_configs:
+      - channel: '#platform-team'
+        title: '📊 Platform Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.description }}'
+        send_resolved: true
+      pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_KEY_HERE'
+        description: '{{ .CommonAnnotations.summary }}'
+
+    # Inhibition rules
+    inhibit_rules:
+    # Inhibit warning if critical is firing
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'pod']
+    # Inhibit pod alerts if node is down
+    - source_match:
+        alertname: 'NodeDown'
+      target_match_re:
+        alertname: '.*Pod.*'
+      equal: ['node']
+
+  # Alert templates
+  alert-templates.tmpl: |
+    {{ define "slack.default.title" }}
+    [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.alertname }}
+    {{ end }}
+
+    {{ define "slack.default.text" }}
+    {{ range .Alerts }}
+    *Alert:* {{ .Labels.alertname }}
+    *Severity:* {{ .Labels.severity }}
+    *Summary:* {{ .Annotations.summary }}
+    *Description:* {{ .Annotations.description }}
+    *Pod:* {{ .Labels.pod }}
+    *Namespace:* {{ .Labels.namespace }}
+    {{ end }}
+    {{ end }}
+
+    {{ define "email.default.subject" }}
+    [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }} - Streaming System
+    {{ end }}
+
+    {{ define "email.default.html" }}
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; }
+        .alert { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .critical { background-color: #ffebee; border-left: 5px solid #f44336; }
+        .warning { background-color: #fff3e0; border-left: 5px solid #ff9800; }
+        .resolved { background-color: #e8f5e9; border-left: 5px solid #4caf50; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+      </style>
+    </head>
+    <body>
+      <h2>Streaming System Alert</h2>
+      {{ range .Alerts }}
+      <div class="alert {{ if eq .Labels.severity "critical" }}critical{{ else if eq .Labels.severity "warning" }}warning{{ else }}resolved{{ end }}">
+        <h3>{{ .Labels.alertname }}</h3>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Status</td><td>{{ .Status }}</td></tr>
+          <tr><td>Severity</td><td>{{ .Labels.severity }}</td></tr>
+          <tr><td>Summary</td><td>{{ .Annotations.summary }}</td></tr>
+          <tr><td>Description</td><td>{{ .Annotations.description }}</td></tr>
+          <tr><td>Pod</td><td>{{ .Labels.pod }}</td></tr>
+          <tr><td>Namespace</td><td>{{ .Labels.namespace }}</td></tr>
+          <tr><td>Started At</td><td>{{ .StartsAt }}</td></tr>
+        </table>
+      </div>
+      {{ end }}
+    </body>
+    </html>
+    {{ end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: streaming-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+      - name: alertmanager
+        image: prom/alertmanager:v0.26.0
+        args:
+        - '--config.file=/etc/alertmanager/alertmanager.yml'
+        - '--storage.path=/alertmanager'
+        - '--web.external-url=http://alertmanager:9093'
+        ports:
+        - containerPort: 9093
+          name: web
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alertmanager
+        - name: storage
+          mountPath: /alertmanager
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: config
+        configMap:
+          name: alertmanager-config
+      - name: storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: streaming-system
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9093
+    targetPort: 9093
+    name: web
+  selector:
+    app: alertmanager

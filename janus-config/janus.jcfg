@@ -1,0 +1,31 @@
+general: {
+    configs_folder = "/usr/local/etc/janus"
+    plugins_folder = "/usr/local/lib/janus/plugins"
+    transports_folder = "/usr/local/lib/janus/transports"
+    events_folder = "/usr/local/lib/janus/events"
+    loggers_folder = "/usr/local/lib/janus/loggers"
+    
+    debug_level = 4
+    debug_timestamps = true
+    debug_colors = true
+    
+    api_secret = ""
+    token_auth = false
+}
+
+nat: {
+    stun_server = "stun.l.google.com"
+    stun_port = 19302
+    nice_debug = false
+    ice_lite = false
+    ice_tcp = true
+}
+
+media: {
+    rtp_port_range = "10000-10200"
+}
+
+certificates: {
+    cert_pem = ""
+    cert_key = ""
+}

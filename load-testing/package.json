@@ -1,0 +1,18 @@
+{
+  "name": "load-testing",
+  "version": "1.0.0",
+  "description": "Load testing tools for live streaming system",
+  "scripts": {
+    "test:10": "node viewer-simulator.js 10 1234",
+    "test:50": "node viewer-simulator.js 50 1234",
+    "test:100": "node viewer-simulator.js 100 1234",
+    "test:500": "node viewer-simulator.js 500 1234",
+    "test:1000": "node viewer-simulator.js 1000 1234",
+    "test:5000": "node viewer-simulator.js 5000 1234",
+    "browser-test": "node browser-load-test.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "puppeteer": "^21.5.0"
+  }
+}

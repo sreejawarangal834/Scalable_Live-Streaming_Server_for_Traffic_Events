@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer - Live Streaming</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📺 Viewer Interface</h1>
+        <div class="status" id="status">Ready to watch</div>
+        
+        <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline controls></video>
+            <div class="video-overlay" id="videoOverlay">
+                <div class="overlay-content">
+                    <div class="spinner"></div>
+                    <p id="overlayMessage">Waiting for broadcaster to start stream...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <input type="number" id="roomInput" value="1234" placeholder="Room ID">
+            <button id="joinBtn" class="btn btn-primary">Join Stream</button>
+            <button id="leaveBtn" class="btn btn-danger" disabled>Leave Stream</button>
+        </div>
+        
+        <div class="info">
+            <p id="viewerCount">Viewers: 0</p>
+            <p id="connectionInfo">Connection: Not connected</p>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/8.2.2/adapter.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+        const remoteVideo = document.getElementById('remoteVideo');
+        const joinBtn = document.getElementById('joinBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const status = document.getElementById('status');
+        const roomInput = document.getElementById('roomInput');
+        const videoOverlay = document.getElementById('videoOverlay');
+        const overlayMessage = document.getElementById('overlayMessage');
+        const connectionInfo = document.getElementById('connectionInfo');
+        
+        let viewer = null;
+        let connectionTimeout = null;
+        
+        // Show overlay with message
+        function showOverlay(message) {
+            overlayMessage.textContent = message;
+            videoOverlay.style.display = 'flex';
+        }
+        
+        // Hide overlay
+        function hideOverlay() {
+            videoOverlay.style.display = 'none';
+        }
+        
+        joinBtn.onclick = async () => {
+            try {
+                const roomId = parseInt(roomInput.value);
+                status.textContent = 'Connecting to stream...';
+                connectionInfo.textContent = 'Connection: Connecting...';
+                showOverlay('Connecting to stream...');
+                
+                viewer = new Viewer(roomId);
+                
+                // Set up connection state monitoring
+                viewer.onConnectionStateChange = (state) => {
+                    console.log('Connection state:', state);
+                    connectionInfo.textContent = `Connection: ${state}`;
+                    
+                    if (state === 'connected') {
+                        hideOverlay();
+                        status.textContent = '▶️ Watching live stream';
+                    } else if (state === 'connecting') {
+                        showOverlay('Establishing connection...');
+                    } else if (state === 'failed' || state === 'disconnected') {
+                        showOverlay('Connection lost. Waiting for broadcaster...');
+                        status.textContent = 'Connection lost';
+                    }
+                };
+                
+                // Set timeout for waiting
+                connectionTimeout = setTimeout(() => {
+                    if (!remoteVideo.srcObject) {
+                        showOverlay('Waiting for broadcaster to start stream...');
+                        status.textContent = 'Waiting for broadcaster...';
+                    }
+                }, 5000);
+                
+                const stream = await viewer.start();
+                
+                if (connectionTimeout) {
+                    clearTimeout(connectionTimeout);
+                }
+                
+                remoteVideo.srcObject = stream;
+                hideOverlay();
+                status.textContent = '▶️ Watching live stream';
+                connectionInfo.textContent = 'Connection: Connected';
+                joinBtn.disabled = true;
+                leaveBtn.disabled = false;
+                roomInput.disabled = true;
+                
+            } catch (error) {
+                if (connectionTimeout) {
+                    clearTimeout(connectionTimeout);
+                }
+                
+                // Check if it's a timeout or no broadcaster
+                if (error.message.includes('timeout') || error.message.includes('no stream')) {
+                    showOverlay('Waiting for broadcaster to start stream...');
+                    status.textContent = 'Waiting for broadcaster...';
+                    connectionInfo.textContent = 'Connection: Waiting';
+                } else {
+                    showOverlay('Error: ' + error.message);
+                    status.textContent = 'Error: ' + error.message;
+                    connectionInfo.textContent = 'Connection: Error';
+                }
+                
+                console.error('Viewer error:', error);
+            }
+        };
+        
+        leaveBtn.onclick = () => {
+            if (viewer) {
+                viewer.stop();
+                remoteVideo.srcObject = null;
+                hideOverlay();
+                status.textContent = 'Left stream';
+                connectionInfo.textContent = 'Connection: Not connected';
+                joinBtn.disabled = false;
+                leaveBtn.disabled = true;
+                roomInput.disabled = false;
+            }
+            
+            if (connectionTimeout) {
+                clearTimeout(connectionTimeout);
+            }
+        };
+        
+        // Handle video events
+        remoteVideo.onloadedmetadata = () => {
+            console.log('Video metadata loaded');
+            hideOverlay();
+        };
+        
+        remoteVideo.onplay = () => {
+            console.log('Video playing');
+            hideOverlay();
+        };
+    </script>
+    
+    <style>
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+        }
+        
+        .overlay-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        #overlayMessage {
+            font-size: 16px;
+            margin: 0;
+        }
+        
+        .video-container {
+            position: relative;
+        }
+        
+        #connectionInfo {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Monitoring Dashboard</title>
+    <link rel="stylesheet" href="dashboard-siem-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span>STREAM MONITOR</span>
+                </div>
+                <div class="header-time" id="currentTime"></div>
+            </div>
+            <div class="header-right">
+                <div class="connection-indicator" id="connectionStatus">
+                    <span class="indicator-dot"></span>
+                    <span class="indicator-text">CONNECTING</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Top Metrics Bar -->
+        <section class="metrics-bar">
+            <div class="metric-card" id="streamStatusCard">
+                <div class="metric-header">
+                    <span class="metric-label">STREAM STATUS</span>
+                    <div class="status-indicator" id="statusIndicator"></div>
+                </div>
+                <div class="metric-value" id="streamStatus">OFFLINE</div>
+                <div class="metric-footer">
+                    <span id="broadcasterCount">0 broadcasters</span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">ACTIVE VIEWERS</span>
+                    <svg class="metric-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <div class="metric-value" id="viewerCount">0</div>
+                <div class="metric-footer">
+                    <span class="metric-trend" id="viewerTrend">—</span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">BITRATE</span>
+                    <svg class="metric-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                </div>
+                <div class="metric-value" id="bandwidth">0</div>
+                <div class="metric-footer">
+                    <span>Mbps</span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">AVG LATENCY</span>
+                    <svg class="metric-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                        <polyline points="17 6 23 6 23 12"></polyline>
+                    </svg>
+                </div>
+                <div class="metric-value" id="latency">—</div>
+                <div class="metric-footer">
+                    <span id="latencyStatus">Measuring...</span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">PACKET LOSS</span>
+                    <svg class="metric-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+                <div class="metric-value" id="packetLoss">0.0%</div>
+                <div class="metric-footer">
+                    <span class="status-good">GOOD</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content Grid -->
+        <div class="content-grid">
+            <!-- Viewer Count Graph -->
+            <div class="panel panel-large">
+                <div class="panel-header">
+                    <h3>VIEWER ACTIVITY</h3>
+                    <span class="panel-subtitle">Real-time monitoring • 60s window</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="viewerChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Latency Graph -->
+            <div class="panel panel-large">
+                <div class="panel-header">
+                    <h3>LATENCY METRICS</h3>
+                    <span class="panel-subtitle">Round-trip time • 60s window</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="latencyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Bitrate Graph -->
+            <div class="panel panel-large">
+                <div class="panel-header">
+                    <h3>NETWORK THROUGHPUT</h3>
+                    <span class="panel-subtitle">Bandwidth usage • 60s window</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="bitrateChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Section -->
+        <div class="bottom-grid">
+            <!-- CPU Usage -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>CPU USAGE</h3>
+                    <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                        <rect x="9" y="9" width="6" height="6"></rect>
+                        <line x1="9" y1="1" x2="9" y2="4"></line>
+                        <line x1="15" y1="1" x2="15" y2="4"></line>
+                        <line x1="9" y1="20" x2="9" y2="23"></line>
+                        <line x1="15" y1="20" x2="15" y2="23"></line>
+                        <line x1="20" y1="9" x2="23" y2="9"></line>
+                        <line x1="20" y1="14" x2="23" y2="14"></line>
+                        <line x1="1" y1="9" x2="4" y2="9"></line>
+                        <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                </div>
+                <div class="panel-body">
+                    <div class="gauge-container">
+                        <canvas id="cpuGauge"></canvas>
+                        <div class="gauge-value" id="cpuValue">0%</div>
+                    </div>
+                    <div class="resource-bar">
+                        <div class="resource-fill" id="cpuBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Memory Usage -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>MEMORY USAGE</h3>
+                    <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                </div>
+                <div class="panel-body">
+                    <div class="gauge-container">
+                        <canvas id="memoryGauge"></canvas>
+                        <div class="gauge-value" id="memoryValue">0%</div>
+                    </div>
+                    <div class="resource-bar">
+                        <div class="resource-fill" id="memoryBar"></div>
+                    </div>
+                    <div class="resource-details" id="memoryDetails">0 MB / 0 GB</div>
+                </div>
+            </div>
+
+            <!-- Performance Stats -->
+            <div class="panel panel-stats">
+                <div class="panel-header">
+                    <h3>PERFORMANCE METRICS</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Connections</span>
+                            <span class="stat-value" id="totalConnections">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Success Rate</span>
+                            <span class="stat-value" id="successRate">100%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Failed</span>
+                            <span class="stat-value" id="failedConnections">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Avg Connect Time</span>
+                            <span class="stat-value" id="avgConnectionTime">0ms</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Disconnections</span>
+                            <span class="stat-value" id="totalDisconnections">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Uptime</span>
+                            <span class="stat-value" id="serverUptime">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>Last Updated: <span id="lastUpdate">—</span></span>
+            <span>•</span>
+            <span>Auto-refresh: <span class="status-active">ENABLED</span></span>
+            <span>•</span>
+            <span>Refresh Rate: 2s</span>
+        </footer>
+    </div>
+
+    <script src="dashboard-siem.js"></script>
+</body>
+</html>
